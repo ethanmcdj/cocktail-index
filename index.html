@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Standing Bar v6 — What Can I Make?</title>
+<title>The Standing Bar — What Can I Make?</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Archivo:wght@400;500;600;700&display=swap');
 :root{
@@ -52,7 +52,7 @@ h1 em{font-style:italic;color:var(--gold)}
   /* Pantry becomes a slide-up drawer */
   .bar{
     position:fixed;left:0;right:0;bottom:0;top:auto;
-    max-height:85vh;overflow-y:auto;z-index:1000;
+    max-height:85vh;overflow-y:auto;z-index:1100;isolation:isolate;pointer-events:auto;
     border-radius:18px 18px 0 0;border-bottom:none;
     transform:translateY(102%);transition:transform .28s cubic-bezier(.2,.85,.3,1);
     padding:22px 18px 28px;
