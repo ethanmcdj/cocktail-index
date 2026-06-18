@@ -72,15 +72,18 @@ h1 em{font-style:italic;color:var(--gold)}
   /* Sticky bottom CTA */
   .mobile-cta{
     display:flex;position:fixed;left:0;right:0;bottom:0;z-index:998;
-    padding:22px 14px 16px;gap:10px;
-    background:linear-gradient(180deg,transparent,var(--bg) 35%)
+    padding:22px 14px calc(16px + env(safe-area-inset-bottom)) 14px;gap:10px;
+    background:linear-gradient(180deg,transparent,var(--bg) 35%);
+    pointer-events:none
   }
   .mobile-cta .openbar{
     flex:1;background:var(--gold);color:#241a10;border:none;
     font-family:'Archivo';font-weight:700;font-size:15px;letter-spacing:.02em;
     padding:15px 18px;border-radius:14px;cursor:pointer;
     box-shadow:0 6px 22px rgba(224,166,78,.32);
-    display:flex;align-items:center;justify-content:center;gap:8px
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,.1);
+    pointer-events:auto
   }
   .mobile-cta .openbar .cnt{background:rgba(36,26,16,.18);padding:2px 9px;border-radius:10px;
     font-size:13px;font-variant-numeric:tabular-nums}
@@ -211,9 +214,9 @@ footer{margin-top:50px;text-align:center;color:var(--muted);font-size:12px;
 <body>
 <div class="wrap">
 <header>
-  <div class="kicker">The Behind The Bar Index</div>
-  <h1>What's On <em>Tonight </em>?</h1>
-  <p class="sub">Tick your ingredients. The index cross-references every cocktail in the branches and tells you what's pourable tonight, and what's one bottle away. Saves on your phone locally.</p>
+  <div class="kicker">The Home Bar Index</div>
+  <h1>What Can I <em>Make</em>?</h1>
+  <p class="sub">Tick the bottles, syrups, and citrus on your shelf. The index cross-references every cocktail in your two collections and tells you what's pourable tonight — and what's one bottle away.</p>
   <div class="stats">
     <div class="stat"><b id="s-cocktails">0</b><span>Cocktails</span></div>
     <div class="stat"><b id="s-ings">0</b><span>Ingredients</span></div>
@@ -528,27 +531,34 @@ function renderPantry(){
   list.querySelectorAll('.ing-row').forEach(r=>r.onclick=()=>{
     const i=r.dataset.ing;have.has(i)?have.delete(i):have.add(i);renderPantry();render();});}
 
-/* events */
+/* events — each in its own try so one missing element doesn't break the chain */
 const openBar=()=>document.body.classList.add('bar-open');
 const closeBar=()=>document.body.classList.remove('bar-open');
-document.getElementById('openbar').onclick=openBar;
-document.getElementById('barclose').onclick=closeBar;
-document.getElementById('backdrop').onclick=closeBar;
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBar();});
-document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{tab=t.dataset.tab;render();});
-document.getElementById('ingsearch').oninput=e=>{search=e.target.value.toLowerCase().trim();renderPantry();};
-document.getElementById('tgopt').onchange=render;
-document.getElementById('tgloose').onchange=()=>{
-  // loose is the default canon behaviour; turning off is informational here
-  render();};
+function safeBind(id, ev, fn){try{const el=document.getElementById(id);if(el)el.addEventListener(ev,fn);}catch(e){console.warn('bind',id,e);}}
+function safeBindTap(id, fn){
+  // 'click' covers desktop + mobile; we don't need touchstart since iOS fires click on <button>
+  // but we wrap in try so a missing element doesn't break the cascade
+  safeBind(id,'click',e=>{e.preventDefault();fn();});
+}
+safeBindTap('openbar', openBar);
+safeBindTap('barclose', closeBar);
+safeBindTap('backdrop', closeBar);
+try{document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBar();});}catch(e){}
+try{document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{tab=t.dataset.tab;render();}));}catch(e){console.warn('tabs',e);}
+safeBind('ingsearch','input',e=>{search=e.target.value.toLowerCase().trim();renderPantry();});
+safeBind('tgopt','change',render);
+safeBind('tgloose','change',render);
 
 /* upload */
+try{
 const dz=document.getElementById('dz'),fi=document.getElementById('file');
-dz.onclick=()=>fi.click();
+if(dz&&fi){
+dz.addEventListener('click',()=>fi.click());
 ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
 ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag');}));
 dz.addEventListener('drop',e=>handleFiles(e.dataTransfer.files));
-fi.onchange=e=>handleFiles(e.target.files);
+fi.addEventListener('change',e=>handleFiles(e.target.files));
+}
 function handleFiles(files){
   const fs=[...files].filter(f=>/\.csv$/i.test(f.name));if(!fs.length)return;
   Promise.all(fs.map(f=>f.text().then(t=>{
@@ -558,7 +568,8 @@ function handleFiles(files){
       const valid=new Set();for(const c of DATA.cocktails)for(const i of c.ings)valid.add(i);
       have=new Set([...have].filter(i=>valid.has(i)));
       render();renderPantry();renderStylebar();
-      dz.innerHTML=`Loaded <b>${DATA.cocktails.length}</b> cocktails from ${fs.length} file(s)`;});}
+      if(dz)dz.innerHTML=`Loaded <b>${DATA.cocktails.length}</b> cocktails from ${fs.length} file(s)`;});}
+}catch(e){console.warn('upload setup',e);}
 
 /* boot */
 function renderStylebar(){
