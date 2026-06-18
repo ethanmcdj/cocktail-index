@@ -37,6 +37,9 @@ h1 em{font-style:italic;color:var(--gold)}
 .stat span{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 
 .layout{display:grid;grid-template-columns:340px 1fr;gap:30px;margin-top:34px;align-items:start}
+.mobile-cta{display:none}
+.backdrop{display:none}
+.barclose{display:none}
 @media(max-width:880px){
   .layout{display:block;margin-top:18px}
   .wrap{padding:0 14px 110px}
@@ -114,9 +117,6 @@ h1 em{font-style:italic;color:var(--gold)}
   /* Make ingredient list inside drawer take available room */
   .ing-list{max-height:none}
 }
-.mobile-cta{display:none}
-.backdrop{display:none}
-.barclose{display:none}
 
 .bar{position:sticky;top:18px;background:var(--panel);border:1px solid var(--line);
   border-radius:16px;padding:22px;box-shadow:var(--shadow);
