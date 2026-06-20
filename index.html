@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Standing Bar v7 — What Can I Make?</title>
+<title>The Standing Bar — What Can I Make?</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Archivo:wght@400;500;600;700&display=swap');
 :root{
@@ -59,8 +59,8 @@ h1 em{font-style:italic;color:var(--gold)}
     display:block;
   }
   .ing-list{flex:none;min-height:0;overflow:visible}
-  body.bar-open{overflow:hidden}
   body.bar-open .bar{transform:translateY(0)}
+  body.bar-open .mobile-cta{display:none}
   .bar::before{content:"";display:block;width:46px;height:4px;background:var(--line);
     border-radius:3px;margin:-6px auto 16px}
   .barclose{display:block;position:absolute;top:14px;right:14px;background:none;border:none;
@@ -70,7 +70,7 @@ h1 em{font-style:italic;color:var(--gold)}
   /* Backdrop */
   .backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;
     opacity:0;pointer-events:none;transition:opacity .22s}
-  body.bar-open .backdrop{opacity:1;pointer-events:auto}
+  body.bar-open .backdrop{opacity:1}
 
   /* Sticky bottom CTA */
   .mobile-cta{
@@ -213,6 +213,7 @@ footer{margin-top:50px;text-align:center;color:var(--muted);font-size:12px;
 </head>
 <body>
 <div class="wrap">
+<div class="backdrop" id="backdrop"></div>
 <header>
   <div class="kicker">The Home Bar Index</div>
   <h1>What Can I <em>Make</em>?</h1>
@@ -257,7 +258,6 @@ footer{margin-top:50px;text-align:center;color:var(--muted);font-size:12px;
 </div>
 <footer>Cross-referenced from your Citrusy &amp; Spirit-Forward collections · raw recipe text preserved on every card</footer>
 </div>
-<div class="backdrop" id="backdrop"></div>
 <div class="mobile-cta" id="mobilecta">
   <button class="openbar" id="openbar">Your Bar <span class="cnt" id="cta-count">0</span> ↑</button>
 </div>
@@ -542,7 +542,13 @@ function safeBindTap(id, fn){
 }
 safeBindTap('openbar', openBar);
 safeBindTap('barclose', closeBar);
-safeBindTap('backdrop', closeBar);
+// Tap-outside-to-close: works regardless of stacking context / transform quirks on iOS Safari
+document.addEventListener('click',e=>{
+  if(!document.body.classList.contains('bar-open'))return;
+  const t=e.target;
+  if(t.closest('.bar')||t.closest('.mobile-cta'))return;
+  closeBar();
+},true);
 try{document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBar();});}catch(e){}
 try{document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{tab=t.dataset.tab;render();}));}catch(e){console.warn('tabs',e);}
 safeBind('ingsearch','input',e=>{search=e.target.value.toLowerCase().trim();renderPantry();});
