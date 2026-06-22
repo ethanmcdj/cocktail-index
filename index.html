@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title> What's on Tonight? v9 </title>
+<title>The Standing Bar — What Can I Make?</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Archivo:wght@400;500;600;700&display=swap');
 :root{
@@ -130,6 +130,14 @@ h1 em{font-style:italic;color:var(--gold)}
 .searchbox input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);
   border-radius:10px;padding:11px 12px;font-family:'Archivo';font-size:14px;outline:none}
 .searchbox input:focus{border-color:var(--gold-dim)}
+.namesearch{position:relative;margin-bottom:18px}
+.namesearch input{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  border-radius:12px;padding:13px 42px 13px 16px;font-family:'Archivo';font-size:15px;outline:none}
+.namesearch input:focus{border-color:var(--gold-dim)}
+.namesearch input::-webkit-search-cancel-button{display:none}
+.namesearch-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;
+  border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px 10px;line-height:1}
+.namesearch-clear:hover{color:var(--gold)}
 .toggles{display:flex;flex-direction:column;gap:9px;margin-bottom:16px;font-size:13px}
 .tg{display:flex;align-items:center;gap:9px;cursor:pointer;color:var(--muted)}
 .tg input{accent-color:var(--gold);width:15px;height:15px}
@@ -215,9 +223,9 @@ footer{margin-top:50px;text-align:center;color:var(--muted);font-size:12px;
 <div class="wrap">
 <div class="backdrop" id="backdrop"></div>
 <header>
-  <div class="kicker">The Bartender Index</div>
-  <h1>What's on <em>Tonight</em>?</h1>
-  <p class="sub">Tick the bottles, syrups, and citrus on your shelf. The index cross-references every cocktail in my collection.</p>
+  <div class="kicker">The Home Bar Index</div>
+  <h1>What Can I <em>Make</em>?</h1>
+  <p class="sub">Tick the bottles, syrups, and citrus on your shelf. The index cross-references every cocktail in your two collections and tells you what's pourable tonight — and what's one bottle away.</p>
   <div class="stats">
     <div class="stat"><b id="s-cocktails">0</b><span>Cocktails</span></div>
     <div class="stat"><b id="s-ings">0</b><span>Ingredients</span></div>
@@ -247,6 +255,10 @@ footer{margin-top:50px;text-align:center;color:var(--muted);font-size:12px;
 
   <main class="results">
     <div class="stylebar" id="stylebar"></div>
+    <div class="namesearch">
+      <input id="namesearch" type="search" placeholder="Search cocktails by name…" autocomplete="off">
+      <button class="namesearch-clear" id="namesearch-clear" hidden aria-label="Clear search">×</button>
+    </div>
     <div class="tabs">
       <button class="tab on" data-tab="make">Can Make <span class="n" id="n-make">0</span></button>
       <button class="tab" data-tab="one">Missing One <span class="n" id="n-one">0</span></button>
@@ -256,7 +268,7 @@ footer{margin-top:50px;text-align:center;color:var(--muted);font-size:12px;
     <div id="resultarea"></div>
   </main>
 </div>
-<footer> Cross-referenced from the Madrusan Branches. Made with love by Ethan Christensen (with a lot of help from ClaudeAI)</footer>
+<footer>Cross-referenced from your Citrusy &amp; Spirit-Forward collections · raw recipe text preserved on every card</footer>
 </div>
 <div class="mobile-cta" id="mobilecta">
   <button class="openbar" id="openbar">Your Bar <span class="cnt" id="cta-count">0</span> ↑</button>
@@ -439,7 +451,7 @@ function styleTags(c){
   if(!tags.includes('Aperitif') && /sherry|vermouth|lillet|cocchi|port/.test(base) && spiritCount<=1) tags.push('Aperitif');
   return tags;
 }
-let have=loadBar();let activeStyles=loadStyles();let tab='make';let search='';let activeCat='All';
+let have=loadBar();let activeStyles=loadStyles();let tab='make';let search='';let activeCat='All';let nameQuery='';
 
 function allIngredients(){const m={};for(const c of DATA.cocktails)for(const i of c.ings)m[i]=(m[i]||0)+1;return m;}
 let ING=allIngredients();
@@ -455,7 +467,11 @@ function recompute(){
   // apply style filter (OR logic): a cocktail passes if any of its tags is in activeStyles, or if no styles selected
   const styleOn=activeStyles.size>0;
   const inStyle=c=>!styleOn||(c._styles||[]).some(t=>activeStyles.has(t));
-  const all=DATA.cocktails.filter(inStyle);
+  // apply name search (matches name OR aka, case-insensitive substring with punctuation/spaces ignored)
+  const norm=s=>(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const q=norm(nameQuery);
+  const inName=c=>!q||norm(c.name).includes(q)||norm(c.aka).includes(q);
+  const all=DATA.cocktails.filter(c=>inStyle(c)&&inName(c));
   const res={make:[],one:[],two:[],all};
   for(const c of all){const {missing,n}=classify(c);c._miss=missing;
     if(n===0)res.make.push(c);else if(n===1)res.one.push(c);else if(n===2)res.two.push(c);}
@@ -554,6 +570,17 @@ try{document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>
 safeBind('ingsearch','input',e=>{search=e.target.value.toLowerCase().trim();renderPantry();});
 safeBind('tgopt','change',render);
 safeBind('tgloose','change',render);
+safeBind('namesearch','input',e=>{
+  nameQuery=e.target.value;
+  document.getElementById('namesearch-clear').hidden=!nameQuery;
+  render();
+});
+safeBindTap('namesearch-clear',()=>{
+  nameQuery='';
+  const el=document.getElementById('namesearch');if(el)el.value='';
+  document.getElementById('namesearch-clear').hidden=true;
+  render();
+});
 
 /* upload */
 try{
